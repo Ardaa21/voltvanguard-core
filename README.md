@@ -687,7 +687,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 ---
 
-[![GitHub Stars](https://img.shields.io/github/stars/ardarotindadinc/voltvanguard-core?style=social)](https://github.com/ardarotindadinc/voltvanguard-core)
-[![GitHub Forks](https://img.shields.io/github/forks/ardarotindadinc/voltvanguard-core?style=social)](https://github.com/ardarotindadinc/voltvanguard-core/fork)
+[![GitHub Stars](https://img.shields.io/github/stars/Ardaa21/voltvanguard-core?style=social)](https://github.com/Ardaa21/voltvanguard-core)
+[![GitHub Forks](https://img.shields.io/github/forks/Ardaa21/voltvanguard-core?style=social)](https://github.com/Ardaa21/voltvanguard-core/fork)
 
 </div>
