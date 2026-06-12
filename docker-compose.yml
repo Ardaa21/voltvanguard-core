@@ -1,0 +1,186 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  VoltVanguard — Local Development Infrastructure                           ║
+# ║  Services: PostgreSQL 16 · Redis 7 · Zookeeper 3.8 · Kafka 3.7           ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+services:
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: voltvanguard-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       voltvanguard
+      POSTGRES_USER:     postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d voltvanguard"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+    networks:
+      - voltvanguard-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: voltvanguard-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+      --save 60 1
+      --loglevel warning
+    ports:
+      - "6380:6379"     # 6380 externally — avoids conflict with any local Redis on 6379
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - voltvanguard-net
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.7.0
+    container_name: voltvanguard-zookeeper
+    restart: unless-stopped
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME:   2000
+      ZOOKEEPER_SYNC_LIMIT:  2
+      ZOOKEEPER_4LW_COMMANDS_WHITELIST: "*"
+      ZOOKEEPER_ADMIN_ENABLE_SERVER: "false"
+    ports:
+      - "2181:2181"
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper/data
+      - zookeeper_log:/var/lib/zookeeper/log
+    healthcheck:
+      test: ["CMD-SHELL", "echo srvr | nc 127.0.0.1 2181 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 15s
+    networks:
+      - voltvanguard-net
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: voltvanguard-kafka
+    restart: unless-stopped
+    depends_on:
+      zookeeper:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKER_ID:                        1
+      KAFKA_ZOOKEEPER_CONNECT:                zookeeper:2181
+      KAFKA_LISTENERS:                        PLAINTEXT://0.0.0.0:9092,PLAINTEXT_INTERNAL://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS:             PLAINTEXT://localhost:9092,PLAINTEXT_INTERNAL://kafka:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP:   PLAINTEXT:PLAINTEXT,PLAINTEXT_INTERNAL:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME:       PLAINTEXT_INTERNAL
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR:          1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR:  1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR:             1
+      KAFKA_DEFAULT_REPLICATION_FACTOR:                1
+      KAFKA_MIN_INSYNC_REPLICAS:                       1
+      KAFKA_LOG_RETENTION_HOURS:              168
+      KAFKA_LOG_RETENTION_BYTES:              1073741824
+      KAFKA_LOG_SEGMENT_BYTES:                104857600
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE:        "false"
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_ENABLE_IDEMPOTENCE:               "true"
+      KAFKA_JVM_PERFORMANCE_OPTS: "-client -XX:+UseG1GC -XX:MaxGCPauseMillis=20"
+    ports:
+      - "9092:9092"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-topics --bootstrap-server localhost:9092 --list || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 15
+      start_period: 30s
+    networks:
+      - voltvanguard-net
+
+  kafdrop:
+    image: obsidiandynamics/kafdrop:latest
+    container_name: voltvanguard-kafdrop
+    restart: unless-stopped
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_BROKERCONNECT: kafka:29092
+      JVM_OPTS: "-Xms32M -Xmx64M"
+    ports:
+      - "9000:9000"
+    networks:
+      - voltvanguard-net
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: voltvanguard-pgadmin
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL:    admin@voltvanguard.dev
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_LISTEN_PORT:      5050
+    ports:
+      - "5050:5050"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - voltvanguard-net
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.0
+    container_name: voltvanguard-kafka-init
+    depends_on:
+      kafka:
+        condition: service_healthy
+    entrypoint: ["/bin/bash", "-c"]
+    command:
+      - |
+        set -e
+        echo "⚡  Creating VoltVanguard Kafka topics…"
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic telemetry.raw --partitions 3 --replication-factor 1 --config retention.ms=3600000 --config cleanup.policy=delete
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic telemetry.processed --partitions 3 --replication-factor 1 --config retention.ms=86400000 --config cleanup.policy=delete
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic vehicle.alerts --partitions 3 --replication-factor 1 --config retention.ms=604800000 --config cleanup.policy=delete
+        kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists --topic telemetry.raw.DLT --partitions 1 --replication-factor 1 --config retention.ms=604800000 --config cleanup.policy=delete
+        echo "🟢  All topics ready:"
+        kafka-topics --bootstrap-server kafka:29092 --list
+    networks:
+      - voltvanguard-net
+    restart: "no"
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  zookeeper_data:
+    driver: local
+  zookeeper_log:
+    driver: local
+  kafka_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  voltvanguard-net:
+    driver: bridge

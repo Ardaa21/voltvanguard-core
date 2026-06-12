@@ -1,0 +1,33 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "⚡ VoltVanguard: Full Stack Debug",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}/mobile/voltvanguard_app",
+      "preLaunchTask": "⚡ VoltVanguard: Start Backend",
+      "postDebugTask": "🛑 VoltVanguard: Stop All",
+      "flutterMode": "debug",
+      "args": []
+    },
+    {
+      "name": "📱 Flutter Only (backend already running)",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}/mobile/voltvanguard_app",
+      "flutterMode": "debug",
+      "args": []
+    },
+    {
+      "name": "🚀 Flutter Profile Mode",
+      "type": "dart",
+      "request": "launch",
+      "program": "lib/main.dart",
+      "cwd": "${workspaceFolder}/mobile/voltvanguard_app",
+      "flutterMode": "profile"
+    }
+  ]
+}

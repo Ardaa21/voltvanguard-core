@@ -1,0 +1,74 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "voltvanguard-route-optimizer"
+version = "1.0.0"
+description = "VoltVanguard Autonomous Charging Decision Agent"
+requires-python = ">=3.11"
+
+dependencies = [
+    # Kafka — librdkafka-backed, production-grade
+    "confluent-kafka==2.4.0",
+
+    # HTTP client — sync + async, HTTP/2 support
+    "httpx==0.27.0",
+
+    # AI / LLM
+    "openai==1.35.0",
+
+    # Data validation & settings
+    "pydantic==2.7.4",
+    "pydantic-settings==2.3.4",
+
+    # Structured logging
+    "loguru==0.7.2",
+
+    # Retry / resilience
+    "tenacity==8.4.2",
+
+    # Utilities
+    "python-dotenv==1.0.1",
+    "rich==13.7.1",          # Pretty console output for dev
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.2.2",
+    "pytest-asyncio==0.23.7",
+    "pytest-mock==3.14.0",
+    "httpx[test]",
+    "ruff==0.5.0",           # Linter + formatter
+    "mypy==1.10.0",
+]
+
+[project.scripts]
+route-optimizer = "main:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+# ── Hatchling build config ─────────────────────────────────────────────────────
+# The agent is a script-based project (no voltvanguard_route_optimizer/ package dir).
+# Tell Hatchling exactly which files to include so 'pip install -e .' works.
+[tool.hatch.build.targets.wheel]
+include = [
+    "main.py",
+    "config/**/*.py",
+    "kafka/**/*.py",
+    "models/**/*.py",
+    "services/**/*.py",
+    "utils/**/*.py",
+]

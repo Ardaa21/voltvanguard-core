@@ -1,0 +1,13 @@
+# VoltVanguard Route Optimizer — Runtime dependencies
+# Kept in sync with pyproject.toml [project.dependencies]
+# Used by start_all.sh for a plain pip install (avoids editable-install issues).
+
+confluent-kafka==2.4.0
+httpx==0.27.0
+openai==1.35.0
+pydantic==2.7.4
+pydantic-settings==2.3.4
+loguru==0.7.2
+tenacity==8.4.2
+python-dotenv==1.0.1
+rich==13.7.1

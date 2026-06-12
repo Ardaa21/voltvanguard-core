@@ -1,0 +1,78 @@
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║  VoltVanguard — Root .gitignore                                             ║
+# ║  Covers: Spring Boot · Flutter · Python · Docker · OS artifacts            ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
+
+# ── Spring Boot / Maven ───────────────────────────────────────────────────────
+target/
+*.jar
+*.war
+*.ear
+*.class
+.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.properties
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.idea/
+*.iml
+*.ipr
+*.iws
+.eclipse/
+.classpath
+.project
+.settings/
+*.swp
+*.swo
+*.DS_Store
+
+# ── Environment / Secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+application-local.yml
+application-local.properties
+
+# ── Flutter ───────────────────────────────────────────────────────────────────
+mobile/voltvanguard_app/.dart_tool/
+mobile/voltvanguard_app/.flutter-plugins
+mobile/voltvanguard_app/.flutter-plugins-dependencies
+mobile/voltvanguard_app/build/
+mobile/voltvanguard_app/.packages
+mobile/voltvanguard_app/android/.gradle/
+mobile/voltvanguard_app/android/local.properties
+mobile/voltvanguard_app/android/key.properties
+mobile/voltvanguard_app/ios/Pods/
+mobile/voltvanguard_app/ios/.symlinks/
+mobile/voltvanguard_app/ios/Flutter/Flutter.framework
+mobile/voltvanguard_app/ios/Flutter/Flutter.podspec
+mobile/voltvanguard_app/*.iml
+mobile/voltvanguard_app/android/*.iml
+
+# ── Python AI Agent ───────────────────────────────────────────────────────────
+ai-agents/**/.venv/
+ai-agents/**/__pycache__/
+ai-agents/**/*.pyc
+ai-agents/**/*.pyo
+ai-agents/**/dist/
+ai-agents/**/build/
+ai-agents/**/*.egg-info/
+ai-agents/**/logs/
+ai-agents/**/*.log
+
+# ── Docker ────────────────────────────────────────────────────────────────────
+# (docker-compose.override.yml is intentionally not ignored — add locally if needed)
+
+# ── Logs & Runtime ────────────────────────────────────────────────────────────
+logs/
+*.log
+*.log.*
+*.pid
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+**/.DS_Store
+Thumbs.db
+desktop.ini

@@ -1,0 +1,62 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "⚡ VoltVanguard: Start Backend",
+      "type": "shell",
+      "command": "./start_all.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": {
+        "echo": true, "reveal": "always", "focus": false,
+        "panel": "dedicated", "showReuseMessage": false, "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "📱 VoltVanguard: Flutter Run",
+      "type": "shell",
+      "command": "flutter run",
+      "options": { "cwd": "${workspaceFolder}/mobile/voltvanguard_app" },
+      "group": "build",
+      "presentation": {
+        "echo": true, "reveal": "always", "focus": true,
+        "panel": "dedicated", "showReuseMessage": false, "clear": true
+      },
+      "problemMatcher": ["$dart-pub", "$flutter"]
+    },
+    {
+      "label": "🚀 VoltVanguard: Full Stack (Backend → Flutter)",
+      "dependsOn": ["⚡ VoltVanguard: Start Backend", "📱 VoltVanguard: Flutter Run"],
+      "dependsOrder": "sequence",
+      "group": { "kind": "build", "isDefault": true },
+      "presentation": { "reveal": "always", "focus": true, "panel": "shared" },
+      "problemMatcher": []
+    },
+    {
+      "label": "🛑 VoltVanguard: Stop All",
+      "type": "shell",
+      "command": "./stop_all.sh",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "build",
+      "presentation": {
+        "echo": true, "reveal": "always", "focus": false,
+        "panel": "dedicated", "showReuseMessage": false, "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "📋 VoltVanguard: Tail Backend Logs",
+      "type": "shell",
+      "command": "tail -f logs/backend.log",
+      "options": { "cwd": "${workspaceFolder}" },
+      "group": "test",
+      "isBackground": true,
+      "presentation": {
+        "echo": false, "reveal": "always", "focus": false,
+        "panel": "dedicated", "showReuseMessage": false
+      },
+      "problemMatcher": []
+    }
+  ]
+}

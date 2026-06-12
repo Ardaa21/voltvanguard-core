@@ -1,0 +1,48 @@
+name: voltvanguard_app
+description: VoltVanguard — Autonomous EV Intelligence Mobile Command Center
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.3.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ── State Management ──────────────────────────────────────────────────────────
+  flutter_riverpod: ^2.5.1
+
+  # ── Navigation ────────────────────────────────────────────────────────────────
+  go_router: ^14.2.3
+
+  # ── Networking ────────────────────────────────────────────────────────────────
+  dio: ^5.4.3+1
+  web_socket_channel: ^3.0.1
+
+  # ── Notifications ─────────────────────────────────────────────────────────────
+  flutter_local_notifications: ^17.2.2
+
+  # ── Charts ────────────────────────────────────────────────────────────────────
+  fl_chart: ^0.68.0
+
+  # ── Utilities ─────────────────────────────────────────────────────────────────
+  intl: ^0.19.0
+  shared_preferences: ^2.3.1
+
+  # ── UI ────────────────────────────────────────────────────────────────────────
+  flutter_animate: ^4.5.0
+  shimmer: ^3.0.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^4.0.0
+
+flutter:
+  uses-material-design: true
+
+  # Asset directories must physically exist with at least one file.
+  # Font files are optional — the app falls back to the system font if absent.
+  assets:
+    - assets/images/placeholder.png

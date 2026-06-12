@@ -1,0 +1,200 @@
+spring:
+  application:
+    name: voltvanguard-core
+
+  # ── PostgreSQL ──────────────────────────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:voltvanguard}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      connection-timeout: 20000
+      pool-name: VoltVanguardHikariPool
+
+  # ── JPA / Hibernate ────────────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: update            # Tabloları Java sınıflarına bakarak otomatik yaratacak
+    show-sql: true                # Arka planda atılan SQL sorgularını terminalde görmek için true yaptık
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        default_schema: public
+        jdbc:
+          batch_size: 25
+        order_inserts: true
+        order_updates: true
+
+  # ── Flyway ─────────────────────────────────────────────────────────────────
+  flyway:
+    enabled: false                # Migration dosyalarımız olmadığı için şimdilik kapattık
+    locations: classpath:db/migration
+    baseline-on-migrate: true
+
+  # ── Redis ──────────────────────────────────────────────────────────────────
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6380}
+      password: ${REDIS_PASSWORD:}
+      timeout: 2000ms
+      lettuce:
+        pool:
+          max-active: 10
+          max-idle: 5
+          min-idle: 1
+          max-wait: 1000ms
+
+  # ── Apache Kafka ───────────────────────────────────────────────────────────
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    # Producer: idempotent, batched, snappy-compressed for high throughput
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      acks: all                          # Wait for all ISR replicas to ack
+      retries: 3
+      properties:
+        enable.idempotence: true         # Exactly-once delivery within producer
+        max.in.flight.requests.per.connection: 5
+        compression.type: snappy         # ~50% size reduction for JSON payloads
+        batch.size: 32768                # 32 KB batch — balances latency vs throughput
+        linger.ms: 5                     # Wait up to 5ms to fill batch
+        request.timeout.ms: 30000
+        delivery.timeout.ms: 120000
+        spring.json.add.type.headers: false  # Keep headers clean
+
+    # Consumer: manual ack, parallel processing per partition
+    consumer:
+      group-id: ${KAFKA_CONSUMER_GROUP:voltvanguard-telemetry-group}
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: latest          # Start from latest; use 'earliest' for replay
+      enable-auto-commit: false          # Manual acknowledgment — we control offset commits
+      max-poll-records: 500              # Max records per poll — tune with concurrency
+      fetch-min-size: 1
+      fetch-max-wait: 500
+      properties:
+        spring.json.trusted.packages: "com.voltvanguard.core.kafka.event"
+        spring.json.use.type.headers: false
+        session.timeout.ms: 30000
+        heartbeat.interval.ms: 10000
+        max.poll.interval.ms: 300000
+        isolation.level: read_committed  # Only read committed messages (transactional producers)
+
+    # Listener container settings
+    listener:
+      ack-mode: MANUAL_IMMEDIATE
+      concurrency: 3                     # 1 thread per partition (adjust to match partition count)
+      missing-topics-fatal: false        # Don't crash on startup if topic not yet created
+
+  # ── Jackson ────────────────────────────────────────────────────────────────
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+
+# ── Server ───────────────────────────────────────────────────────────────────
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /api/v1
+  compression:
+    enabled: true
+    mime-types: application/json
+
+# ── Actuator ─────────────────────────────────────────────────────────────────
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when_authorized
+
+# ── OpenAPI / Swagger ─────────────────────────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+
+# ── VoltVanguard Custom Properties ────────────────────────────────────────────
+voltvanguard:
+  cache:
+    vehicle-ttl-seconds: 300
+    station-ttl-seconds: 120
+    task-ttl-seconds: 60
+    telemetry-ttl-seconds: 30          # Raw telemetry cache — short TTL, always fresh
+  task:
+    max-concurrent-per-vehicle: 3
+    expiry-check-ms: 60000
+
+  # ── Kafka topic names (single source of truth) ───────────────────────────
+  kafka:
+    topics:
+      telemetry-raw: telemetry.raw
+      telemetry-processed: telemetry.processed
+      vehicle-alerts: vehicle.alerts
+      dead-letter: telemetry.raw.DLT
+    partitions: 3
+    replication-factor: 1              # 1 for local dev; set to 3 in prod
+
+  # ── Telemetry simulator ──────────────────────────────────────────────────
+  simulator:
+    enabled: ${SIMULATOR_ENABLED:true}
+    interval-ms: 1000                  # 1 event per vehicle per second
+    max-vehicles: 20                   # Cap simulated fleet size
+
+  # ── Telemetry processing ─────────────────────────────────────────────────
+  telemetry:
+    battery-critical-threshold: 15.0
+    db-persistence-interval: 5        # Persist to DB every N messages per vehicle (5 = ~5s in dev)
+    alert-cooldown-seconds: 300        # Min seconds between repeated alerts per vehicle
+
+# ── Logging ───────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.voltvanguard: DEBUG
+    org.springframework.data.redis: INFO
+    org.hibernate.SQL: WARN
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+---
+# ── Local dev profile ────────────────────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: dev
+  jpa:
+    show-sql: false
+    hibernate:
+      ddl-auto: update   # convenience in dev; migrations still preferred
+
+---
+# ── Test profile ─────────────────────────────────────────────────────────────
+spring:
+  config:
+    activate:
+      on-profile: test
+  datasource:
+    url: jdbc:h2:mem:voltvanguard_test;DB_CLOSE_DELAY=-1;MODE=PostgreSQL
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+  flyway:
+    enabled: false
